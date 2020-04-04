@@ -1,0 +1,16 @@
+class SolutionInt {
+	public int reverse(int x) {
+		try {
+			Character a = new Integer(x).toString().charAt(0);
+			if (a.isDigit(a)) {
+				String sb = new StringBuilder(new Integer(x).toString()).reverse().toString();
+				return Integer.parseInt(sb);
+			} else {
+				String sb = "-" + new StringBuilder(new Integer(x).toString().substring(1)).reverse().toString();
+				return Integer.parseInt(sb);
+			}
+		} catch (Exception e) {
+			return 0;
+		}
+	}
+}
