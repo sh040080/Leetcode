@@ -1,0 +1,23 @@
+class Solution {
+    public String countAndSay(int n) {
+		String answer = "1";
+		char find = answer.charAt(0);
+		String add;
+		int cnt = 0;
+
+		for (int r = 1; r < n; r++) {
+			add = "";
+			for (int c = 0; c < answer.length();) {
+				find = answer.charAt(c);
+				while ( c < answer.length() && find == answer.charAt(c)) {
+					cnt++;
+					c++;
+				}
+				add += Integer.toString(cnt) + find;
+				cnt = 0;
+			}
+			answer = add;
+		}
+		return answer;
+    }
+}
