@@ -1,0 +1,52 @@
+import java.math.BigDecimal;
+
+class Solution {
+	public int myAtoi(String str) {	int answer = 0;
+
+		if (str.length() == 0) {
+			return answer;
+
+		}
+		char ch = str.charAt(0);
+		for (int i = 0; i <= str.length() - 1; i++) {
+			ch = str.charAt(i);
+			if (Character.isWhitespace(ch)) { // 1. white space 넘어감
+				System.out.println("20 : " + ch);
+				continue;
+			} else if (ch != '-' && ch != '+' && !Character.isDigit(ch)) { // 2. + , - 가 아닌 글자이면 '0' 리턴
+				System.out.println("23 : " + ch);
+
+				return answer;
+			} else if (ch == '+' || ch == '-' || Character.isDigit(ch)) { // 3. 숫자
+				String s = new String() + ch;
+				System.out.println("26 : " + s);
+				for (int j = i + 1; j < str.length(); j++) {
+					ch = str.charAt(j);
+					if (Character.isDigit(ch)) {// 3-1 . 숫자일때 숫자 붙여줌
+						s += ch;
+						System.out.println("34 : " + s);
+					} else {
+						System.out.println("no number");
+						break;
+					} // 3-2 숫자 아니면 break;
+				}
+				try {
+					answer = Integer.parseInt(s); // 3-3. 문자를 숫자로 변경
+					System.out.println("47 : " + answer);
+				} catch (Exception e) { // 4. Integer보다 크면 integer Max Min value로 변경
+					System.out.println("excepton이 난 모양" + e);
+					System.out.println(Integer.MAX_VALUE);
+					System.out.println(Integer.MIN_VALUE);
+
+answer = (new BigDecimal(s).compareTo(new BigDecimal(Integer.MAX_VALUE)) == 1) ? Integer.MAX_VALUE
+							: Integer.MIN_VALUE;
+					System.out.println("43 : " + answer);
+				} finally {
+					System.out.println("51  : " + answer);
+					return answer; // 어쨌든 리턴
+				}
+			}
+		}
+		return answer;
+	}
+}
