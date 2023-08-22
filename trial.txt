@@ -1,0 +1,102 @@
+1. EXISTS, IN 의 차이 ?
+EXISTS: It returns true if the subquery returns at least one row.
+IN: It checks if a value matches any value in a list or subquery.
+
+ SELECT A.상품코드, A.상품명, A.단가
+ FROM 상품 A
+ WHERE (가) (SELECT 상품코드
+		FROM 주문상세 B
+		WHERE A.상품코드 = B.상품코드
+		AND B.주문수량 = 100)
+
+--> WHERE절에 비교컬럼이 없으므로 EXISTS 키워드 필요
+
+Syntax: The syntax for EXISTS and IN is different. The EXISTS keyword is used with a subquery, typically in the WHERE clause, while the IN keyword is followed by a list of values enclosed in parentheses.
+1) The EXISTS keyword is typically used in combination with a correlated subquery. 
+SELECT *
+FROM Customers c
+WHERE EXISTS (SELECT 1 FROM Orders o WHERE o.customer_id = c.customer_id);
+-> 서브쿼리 만족하는 최소 1개 결과라도 있으면, 그 결과가 포함됨
+-> EXISTS는 특정한 컬럼을 요구하지 않음. 서브쿼리를 만족하는 결과가 있는지 없는지만 체크함.
+
+2) The IN keyword is used to compare a value against a list of values
+SELECT *
+FROM Employees
+WHERE job_title IN ('Manager', 'Supervisor');
+-> 값의 나열
+
+>>> 같은뜻임
+SELECT *
+FROM Customers c
+WHERE EXISTS (SELECT 1 FROM Orders o WHERE o.customer_id = c.customer_id AND o.product_id = '123');
+
+SELECT *
+FROM Customers
+WHERE customer_id IN (SELECT customer_id FROM Orders WHERE product_id = '123');
+
+>>> EXISTS, IN 키워드 사용과 INNER JOIN의 차이 ?
+INNER JOIN is typically used when you need to combine columns from multiple tables
+EXISTS or IN are used when you want to filter rows based on the existence of a matching record in a subquery.
+
+
+2. MERGE 
+MERGE INTO target_table AS T
+USING source_table AS S
+ON T.join_condition = S.join_condition
+WHEN MATCHED THEN
+    UPDATE SET T.column1 = S.column1, T.column2 = S.column2, ...
+WHEN NOT MATCHED THEN
+    INSERT (column1, column2, ...)
+    VALUES (S.column1, S.column2, ...)
+WHEN NOT MATCHED BY SOURCE THEN
+    DELETE;
+
+
+3. 2000년 1월1일 이후 출생한 출생한 모든 고객에 대해 승인금액이 50000원 이상인 승인 정보를 조회하기 위한 SQL 구문을 고르시오  단, 2000년 1월 1일 이후 출생한 고객 은 승인 금액에 상관없이 모두 조회 되어야 한다 .
+
+SELECT A. 회원번호, A.이름 , A. 주소 , B.승인번호, B.승인시간
+FROM 회원 A LEFT OUTER JOIN 승인 B ON (A.회원번호 =B.회원번호) 
+WHERE A.출생일자 >= ‘20000101 ’
+AND B.승인금액 >=50000
+--> WHERE 절에 승인금액을 표시할 경우, 대상 건에서 삭제됨
+
+정답)
+SELECT A. 회원번호, A.이름 , A. 주소 , B.승인번호, B.승인시간
+FROM 회원 A LEFT OUTER JOIN 승인 B ON (A.회원번호 =B.회원번호 AND B.승인금액 >=50000) 
+WHERE A.출생일자 >= ‘20000101 ’
+
+
+
+4. 물리데이터 모델 전환, 데이터 모델링 > 물리데이터 모델링
+5. 이벤트 데이터 도출, 프로세스 모델링, 설계 > 비즈니스 로직 설계
+6. 프로세스 모델링, 분석 > TO-BE 프로세스 분석 (업무흐름도분석)
+7. 테스트케이스 도출, 프로세스모델링, 단위 테스트케이스설계, 
+구조기반 테스팅의 테스트 케이스를 도출할 수 있는지 확인
+8. 자기참조모델정규화, 데이터모델링 > 논리데이터모델링
+
+출제의도
+구조기반 테스팅의 테스트 케이스를 도출할 수 있는지 확인
+결정 커버리지, 구문 커버리지, 조건/결정 커버리지 오류
+구문 커버리지 : 테스트 실행한 구문의 수를 %로 작성
+결정 커버리지 : 테스트 가능한 결정문의 수를 %로 작성
+ ( IF 문에서 결과가 참/거짓, CASE문에서 default를 포함한 모든 결과)
+
+조건 커버리지 : 테스트 가능한 조건문의 수를 내부 조건이 true/false의 경우를 충족하는 지를 본다.
+void test(int a, int b) {
+  // 함수 A 실행 - 1번
+  if (a > 0 && b < 0) { //- 2번
+    // 함수 B 실행 - 3번
+  }
+  // 함수 C 실행 - 4번
+}
+내부 조건이란 조건 식 내부의 각각의 조건이다. 즉, a > 0 과 b < 0를 얘기하며 각각이 true/false의 경우가 있으면 조건 커버리지를 만족한다.
+코드를 테스트하기 위해 a = 1, b = 1 과 a = -1, b = -1를 넣어보는 테스트를 만들었다고 해보자. 
+내부 조건식 a > 0와 b < 0 는 모두 양수일 때와 음수일 때 테스트 케이스가 존재하므로 조건 커버리지를 만족한다.
+하지만 a > 0 && b < 0는 두 경우 모두 false 이므로 함수 B 실행의 구문이 들어간 경우는 테스트가 안되는 결과가 발생한다.
+이처럼 테스트를 작성했을 때 조건 커버리지를 만족하더라도 구문 커버리지와 이후에 나올 결정 커버리지를 만족하지 못하는 경우가 존재한다.
+결정 커버리지에서 결정은 내부 조건이 아닌 조건식을 얘기한다. 즉, 위에 코드에서는 a > 0 && b < 0를 얘기한다.
+결정 커버리지를 만족하는 테스트를 만든다고 한다면 a = 1, b = 1 과 a = -1, b = -1와 같이 조건식이 false만 나오는 식이 아닌 a = 1, b = -1 를 넣는 테스트를 만들어야한다.
+ 
+ERD 작성
+
+ 
