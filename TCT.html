@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" type="text/css" href="./res/index.css">
+    <link rel="stylesheet" type="text/css" href="./res/reset.css">
+    <script src="./res/jquery-3.6.3.min.js"></script>
+    <script>
+      $(document).ready(function() {
+        const USER_NO = 'ME00001'
+
+          /*
+                • 기본값인 조회기간 1주일을 선택한 상태인가? (2점) (1주일버튼 반전, 이용내역 요약 및 이용내역 표시)
+                [이벤트 처리 - 조회기간 관련]
+                • 사용자의 선택에 따라 조회기간 버튼은 색상이 반전이 수행되는가? (2점)
+                • 선택한 조회기간에 따른 이용내역 요약정보가 백엔드 요청한결과에 따라 표시되는가? (2점)
+                • 선택한 조회기간에 따른 이용내역이 백엔드에 요청한 결과에따라 표시되는가? (2점)
+        */
+
+
+
+          /*회원정보 가져오기
+            => 항상 기본적으로 존재 건들것 없음d [최초 화면로드]
+          */
+          $.ajax({
+            type: "GET",
+            url: `http://localhost:8080/api/v1/user/${USER_NO}`,
+            dataType: "json",
+            success: function (result, status, xhr) {
+              console.log('회원정보 가져오기 성공');
+              console.table(result);
+              $('#userName').text(result?.name)
+            },
+            error: function (xhr, status, error) {
+              console.error('회원정보 가져오기 실패')
+            },
+          });
+
+
+          /*
+          [1] 10page 서비스이용내역_요약
+          1-1) ajax 복사, type "GET", url 수정, queryPrameter 넣어줌(문제에선 URL Parameters)
+          1-2) 화면에 값 세팅
+               - * usage_meter /1000 처럼 데이터 가공하는 문제 나오니 문제 읽어볼것.
+
+
+            [이용내역 요약 화면 관련]
+            • 이용시간은 분단위로 표시 되는가? (1점)
+            • 이동거리는 km 단위로 표시되는가? (1점)
+            • 이동거리는 소수점 첫째자리까지 표시하는가? (1점) => 검색 후 toFixed(1)  가져다 붙이기.
+            • 탄소절감효과는 소수점 첫째자리까지 표시하는가? (1점) => 검색 후 toFixed(1)  가져다 붙이기.
+          */
+
+          let get서비스이용내역_요약 = (PTYPE)=>{//(3-3) 함수로 감싸기
+
+              $.ajax({
+              type: "GET",// (1)
+              url: `http://localhost:8080/api/v1/user/${USER_NO}/usage/summary`,// (1-1)
+              dataType: "json",
+              data: { // (1-1)  queryPrameter 작성부분 data:{json} 사용
+                "ptype": PTYPE
+              },
+              success: function (result, status, xhr) {
+                console.log('서비스이용내역_요약 가져오기');
+                console.table(result)
+                // (1-2)  querySelector : Element 안에 있는 element를 선택   .(클래스), #(아이디), (태그) // Element.innerHTML
+                let targetEl = document.querySelector('.service-summary-detail-container');
+                targetEl.innerHTML = make_서비스이용내역_요약(result);
+              },
+              error: function (xhr, status, error) {
+                console.error('서비스이용내역_요약 가져오기 실패')
+              },
+            });
+          }
+
+          //(1-2) 화면에 보여주는 HTML 작성. :
+          let make_서비스이용내역_요약 = (res)=>{
+            return `<div class="color-gray">이용건수</div>
+                    <div>${res.usage_count}건</div>
+                    <div class="color-gray">이용시간</div>
+                    <div>${res.usage_minute}분</div>
+                    <div class="color-gray">이동거리</div>
+                    <div>${(res.usage_meter/1000).toFixed(1)}km</div>
+                    <div class="color-gray">탄소절감효과</div>
+                    <div>${res.carbon_reduction.toFixed(1)}kg</div>`
+          }
+
+          /*
+          [2] 11page 서비스이용내역_상세목록
+          2-1) ajax 복사, type "GET", url 수정, queryPrameter 넣어줌(문제에선 URL Parameters)
+          2-2) 변경할 Elemnet 찾기, Element 내용 만들기
+              * list<json> 형태로 받는 데이터 가공하는 문제 계속 나왔음.
+              * 설계서에 result 가 list 형태로 감싸져있다나옴  result = {"list":[{}, {},...]} * backEnd 구현 안하고 할꺼니 이런 부분 주의
+          2-3)  조회된 내역이 없는 경우
+
+                [이용내역 항목 화면 관련]
+                • 총 이동거리는 km 단위로 표시되는가? (1점)
+                • 총 이용시간은 분단위로 표시되는가? (1점)
+                • 이용시간과 결제일시의 표현형은 "년.월.일 시간(24시간형식):분"의 형태로 표시되는가 ? (2점)
+                • 결제수단의 표시는 요구사항에 맞춰 구현되었는가? (2점)
+                • 이용내역이 없을 경우 조회내용없음 UI 가 표시되는가? (2점)
+          */
+         let get서비스이용내역_상세목록 = (PTYPE)=>{// (3-3) 함수로 감싸기
+          $.ajax({
+            type: "GET",// (2-1)
+            url: `http://localhost:8080/api/v1/user/${USER_NO}/usage`,// (2-1)
+            dataType: "json",
+            data: { // (2-1)
+              "ptype": PTYPE
+            },
+            success: function (result, status, xhr) {
+              console.log('서비스이용내역_상세목록 가져오기');
+              console.table(result.list); console.table(result); // <= * list 안에있는거 꺼내줘야됨. console로 찍어보면서 확인.
+
+              // (2-2)  querySelector : Element 안에 있는 element를 선택   .(클래스), #(아이디), (태그)  // Element.innerHTML
+              let targetEl = document.querySelector('.service-list-container');
+              targetEl.innerHTML = make_서비스이용내역_상세목록(result.list); // <= * 주의
+            },
+            error: function (xhr, status, error) {
+              console.error('서비스이용내역_상세목록 가져오기 실패')
+            },
+          });
+         }
+
+
+          //2-2) 함수만들기
+          let make_서비스이용내역_상세목록 = (res)=>{
+            let ret = ''
+            if(res.length == 0)return `
+                <div class="service-empty">
+                  <div class="service-empty-container">
+                    <div class="service-empty-message">
+                      조회된 정보가 없습니다.
+                    </div>
+                  </div>
+                </div>
+              `
+            for(let i = 0; i < res.length; i++){
+              // 요구사항 확인 후 수정 : 결제수단의 표시는 요구사항에 맞춰 구현되었는가? (2점)
+              let 결제수단 = `카드 ${res[i].card_pay}원 + 포인트 ${res[i].point_pay}P`
+              if(res[i].point_pay == 0){
+                결제수단 = `카드 ${res[i].card_pay}원`
+              }
+              // 요구사항 확인 후 수정 : 이용시간과 결제일시의 표현형은 "년.월.일 시간(24시간형식):분"의 형태로 표시되는가 ? (2점)
+              // 시간 표시 시 replaceAll('-','.')
+
+              ret += `<div class="service-list-content">
+                        <div class="service-list-header">
+                          <span>${(res[i].use_distance / 1000)}km</span>
+                          <span class="color-gray ml-10">${res[i].use_time}분</span>
+                        </div>
+                        <div class="service-list-body">
+                          <div class="color-gray">이용시간</div>
+                          <div>${res[i].use_start_dt.replaceAll('-','.')} ~ ${res[i].use_end_dt.replaceAll('-','.')}</div>
+                          <div class="color-gray">결제일시</div>
+                          <div>${res[i].pay_datetime.replaceAll('-','.')}</div>
+                          <div class="color-gray">결제수단</div>
+                          <div>${결제수단}</div>
+                        </div>
+                      </div>
+                      <hr />`
+            }
+            return ret;
+          }
+
+          /*
+            [3] 이벤트 만들기
+            1) 요소들 선택 querySelectorAll : Element 안에 있는 element를 선택 list
+            2)  이벤트 추가
+
+            3)  api 호출 추가.
+              - 작성한 api 호출부분 함수로 감싸줌. 호출
+          */
+          let tablinks = document.querySelectorAll('.tablinks') // (3-1)
+          console.log("tablinks 확인 ",tablinks)
+
+          for(let i = 0; i < tablinks.length; i++){
+            tablinks[i].addEventListener('click', ()=>tablink_클릭(i))
+          }
+
+          let tablink_클릭 = (idx)=>{
+            // 1. 모든 tabLink on 제거 후 on 추가.
+            for(let j = 0; j < tablinks.length; j++){
+              tablinks[j].classList.remove('on');
+            }
+            tablinks[idx].classList.add('on');
+
+            // 3) api 호출
+            let PTYPE = idx+1;
+            get서비스이용내역_요약(PTYPE);
+            get서비스이용내역_상세목록(PTYPE); // * 동기 호출 필요하면 함수 호출 위치 get서비스이용내역_요약의 callback으로 수정 (동기 문제는 아직 안 나옴)
+          }
+
+
+          /*
+            [4] 요구사항 확인 후 화면 초기상태 설정
+          */
+          tablink_클릭(0);
+
+          /*
+            백엔드 없이 테스트 하는법
+            - 문제에 API 리턴이 다 나와있음.  10page, 12page 응답 메시지 형태(예시)
+            - ajax 콜백부분 그대로 복붙
+          */
+          let test = false;
+          if(test == true)
+          {
+            //서비스이용내역_상세목록 테스트
+            let result = {
+                    "usage_count" : 7,
+                    "usage_minute" : 170,
+                    "usage_meter" : 18600,
+                    "carbon_reduction" : 4.3
+                    }
+            let targetEl = document.querySelector('.service-list-container');
+            targetEl.innerHTML = make_서비스이용내역_상세목록(result.list);
+
+            //서비스이용내역_상세목록 테스트
+            result = {
+                list : [
+                {
+                "use_no": "US22000014",
+                "use_distance": 3800,
+                "use_time": 40,
+                "use_start_dt": "2022-09-14 14:00",
+                "use_end_dt": "2022-09-14 14:30",
+                "pay_datetime": "2022-09-14 14:35",
+                "card_pay": 4900,
+                "point_pay": 1100
+                },
+                {
+                "use_no": "US22000015",
+                "use_distance": 1100,
+                "use_time": 10,
+                "use_start_dt": "2022-09-15 14:00",
+                "use_end_dt": "2022-09-15 14:30",
+                "pay_datetime": "2022-09-15 14:35",
+                "card_pay": 1100,
+                "point_pay": 400
+                }
+                ]
+              }
+            targetEl = document.querySelector('.service-list-container');
+            targetEl.innerHTML = make_서비스이용내역_상세목록(result.list);
+          }
+        })
+    </script>
+  </head>
+  <body>
+    <div>
+      <!-- Title -->
+        <div class="main-title">
+          <h1>서비스 이용내역</h1>
+          <div id="userName"></div>
+        </div>
+      <hr />
+      <!-- List summary  -->
+      <div class="service-summary">
+        <div class="service-summary-tab">
+          <button class="tablinks on">1주일</button>
+          <button class="tablinks">1개월</button>
+          <button class="tablinks">3개월</button>
+        </div>
+        <div class="spacer-20"></div>
+        <div class="service-summary-detail-container">
+          <div class="color-gray">이용건수</div>
+          <div>18건</div>
+          <div class="color-gray">이용시간</div>
+          <div>320분</div>
+          <div class="color-gray">이동거리</div>
+          <div>60.2km</div>
+          <div class="color-gray">탄소절감효과</div>
+          <div>8.7kg</div>
+        </div>
+      </div>
+
+      <hr />
+
+      <!-- Usage List -->
+      <div class="service-list-container">
+        <div class="service-list-content">
+          <div class="service-list-header">
+            <span>32km</span>
+            <span class="color-gray ml-10">60분</span>
+          </div>
+          <div class="service-list-body">
+            <div class="color-gray">이용시간</div>
+            <div>22.01.22 08:01 ~ 22.01.22 09:01</div>
+            <div class="color-gray">결제일시</div>
+            <div>22.01.22 09:01</div>
+            <div class="color-gray">결제수단</div>
+            <div>카드 1900원 + 포인트 100P</div>
+          </div>
+        </div>
+        <hr />
+        <div class="service-list-content">
+          <div class="service-list-header">
+            <span>32km</span>
+            <span class="color-gray ml-10">60분</span>
+          </div>
+          <div class="service-list-body">
+            <div class="color-gray">이용시간</div>
+            <div>22.01.22 08:02 ~ 22.01.22 09:02</div>
+            <div class="color-gray">결제일시</div>
+            <div>22.01.22 09:02</div>
+            <div class="color-gray">결제수단</div>
+            <div>카드 1000원</div>
+          </div>
+        </div>
+        <hr />
+      </div>
+
+      <!-- Empty --> //  제거 필요
+      <!-- <div class="service-empty">
+        <div class="service-empty-container">
+          <div class="service-empty-message">
+            조회된 정보가 없습니다.
+          </div>
+        </div>
+      </div> -->
+    </div>
+  </body>
+</html>
